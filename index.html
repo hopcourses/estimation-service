@@ -1,0 +1,168 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Allez HOP! - Devis Éclair</title>
+    <style>
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: #f4f7f6; padding: 20px; color: #333; }
+        .container { max-width: 500px; margin: 0 auto; background: white; padding: 30px; border-radius: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); }
+        h2 { text-align: center; color: #ff6b00; margin-top: 0; }
+        label { font-weight: bold; display: block; margin-top: 15px; margin-bottom: 5px; }
+        input, select { width: 100%; padding: 10px; border: 1px solid #ccc; border-radius: 6px; box-sizing: border-box; font-size: 16px; }
+        .price-box { background: #fff3e6; border: 2px dashed #ff6b00; padding: 15px; text-align: center; font-size: 24px; font-weight: bold; color: #ff6b00; border-radius: 8px; margin-top: 25px; }
+        .mention { font-size: 12px; color: #666; text-align: center; margin-top: 5px; }
+        button { width: 100%; padding: 15px; background: #ff6b00; color: white; border: none; border-radius: 6px; font-size: 18px; font-weight: bold; cursor: pointer; margin-top: 20px; transition: 0.3s; }
+        button:hover { background: #e65c00; }
+        #message-succes { display: none; text-align: center; color: green; font-weight: bold; margin-top: 15px; }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h2>Devis Éclair</h2>
+    
+    <label for="email">E-mail expéditeur</label>
+    <input type="email" id="email" placeholder="votre@email.com" required>
+
+    <label for="service">Service & Taille</label>
+    <select id="service" onchange="calculerPrix()">
+        <option value="">Sélectionnez un service...</option>
+        <option value="Drive alimentaire - Taille S">Drive alimentaire - Taille S</option>
+        <option value="Drive alimentaire - Taille XL">Drive alimentaire - Taille XL</option>
+        <option value="Colis - Taille M">Colis - Taille M</option>
+        <option value="Équipement Moyen - Taille L">Équipement Moyen - Taille L</option>
+        <option value="Équipement Volumineux - Taille XXL">Équipement Volumineux - Taille XXL</option>
+        <!-- Ajoutez ici toutes vos autres déclinaisons exactes -->
+    </select>
+
+    <label for="distance">Distance (en km)</label>
+    <input type="number" id="distance" step="0.1" min="0" placeholder="Ex: 12.5" oninput="calculerPrix()">
+
+    <label for="etages">Nombre d'étages</label>
+    <input type="number" id="etages" min="0" value="0" oninput="calculerPrix()">
+
+    <div class="price-box">
+        <span id="affichage-prix">0,00</span> €
+    </div>
+    <div class="mention">Une remise partenaire de 10 % s'appliquera automatiquement à la facturation si votre e-mail est éligible.</div>
+
+    <button id="btn-valider" onclick="envoyerCommande()">Demander la livraison</button>
+    <div id="message-succes">Mission transmise à nos cotransporteurs !</div>
+</div>
+
+<script>
+let prixActuel = 0;
+
+function calculerPrix() {
+    let p1 = document.getElementById('service').value;
+    let p2 = document.getElementById('distance').value;
+    let p3 = document.getElementById('etages').value;
+
+    if (!p1 || !p2) {
+        document.getElementById('affichage-prix').innerText = "0,00";
+        prixActuel = 0;
+        return;
+    }
+
+    let textP2 = String(p2).replace(",", ".");
+    let distance = parseFloat(textP2) || 0;
+    let etages = parseInt(p3) || 0;
+    
+    let elements = String(p1).split(" - Taille ");
+    if (elements.length !== 2) return;
+
+    let branche = elements[0].trim();
+    let taille = elements[1].trim();
+    let tarifPalier = 0;
+    let distanceGrille = distance > 30 ? 30 : distance;
+    let kmSupp = distance > 30 ? Math.ceil(distance - 30) : 0;
+    let supplementEtage = 0;
+    let multiplicateur = 1.03;
+    let sousTotal = 0;
+
+    if (branche === "Drive alimentaire") {
+        if (distanceGrille < 2) tarifPalier = 5;
+        else if (distanceGrille < 5) tarifPalier = 5.50;
+        else if (distanceGrille < 10) tarifPalier = 6;
+        else if (distanceGrille < 15) tarifPalier = 8;
+        else if (distanceGrille < 20) tarifPalier = 12;
+        else tarifPalier = 15;
+        let supplementTaille = (taille === "XL" || taille === "XXL") ? 1 : 0;
+        if (etages > 2) supplementEtage = 0.50;
+        sousTotal = tarifPalier + kmSupp + supplementTaille + supplementEtage + 2.25;
+    }
+    else if (branche === "Colis") {
+        let isTailleSup = (taille === "XL" || taille === "XXL");
+        if (distanceGrille < 5) tarifPalier = isTailleSup ? 6 : 5;
+        else if (distanceGrille < 10) tarifPalier = isTailleSup ? 8 : 6;
+        else if (distanceGrille < 15) tarifPalier = isTailleSup ? 10 : 8;
+        else if (distanceGrille < 20) tarifPalier = isTailleSup ? 12 : 9;
+        else tarifPalier = isTailleSup ? 15 : 12;
+        sousTotal = tarifPalier + kmSupp + 2.25;
+    }
+    else if (branche === "Équipement Moyen") {
+        if (distanceGrille < 5) tarifPalier = (taille === "M") ? 7 : (taille === "L") ? 10 : 13;
+        else if (distanceGrille < 10) tarifPalier = (taille === "M") ? 9 : (taille === "L") ? 13 : 16;
+        else if (distanceGrille < 15) tarifPalier = (taille === "M") ? 11 : (taille === "L") ? 15 : 19;
+        else if (distanceGrille < 20) tarifPalier = (taille === "M") ? 13 : (taille === "L") ? 18 : 25;
+        else tarifPalier = (taille === "M") ? 15 : (taille === "L") ? 20 : 30;
+        if (etages > 2) supplementEtage = 0.50;
+        sousTotal = tarifPalier + kmSupp + supplementEtage + 3.25;
+        if (sousTotal >= 30) multiplicateur = 1.06;
+    }
+    else if (branche === "Équipement Volumineux") {
+        if (distanceGrille < 5) tarifPalier = (taille === "L" || taille === "XL") ? 15 : 20;
+        else if (distanceGrille < 10) tarifPalier = (taille === "L") ? 18 : (taille === "XL") ? 20 : 25;
+        else if (distanceGrille < 15) tarifPalier = (taille === "L") ? 22 : (taille === "XL") ? 25 : 30;
+        else if (distanceGrille < 20) tarifPalier = (taille === "L") ? 25 : (taille === "XL") ? 30 : 35;
+        else tarifPalier = (taille === "L") ? 29 : (taille === "XL") ? 35 : 45;
+        if (etages >= 2) supplementEtage = 1.00;
+        sousTotal = tarifPalier + kmSupp + supplementEtage + 3.25;
+        if (sousTotal >= 30) multiplicateur = 1.06;
+    }
+
+    prixActuel = Math.round(sousTotal * multiplicateur * 1.20 * 100) / 100;
+    document.getElementById('affichage-prix').innerText = prixActuel.toFixed(2).replace(".", ",");
+}
+
+function envoyerCommande() {
+    let email = document.getElementById('email').value;
+    let service = document.getElementById('service').value;
+    let distance = document.getElementById('distance').value;
+    
+    if (!email || !service || !distance) {
+        alert("Veuillez remplir tous les champs obligatoires.");
+        return;
+    }
+
+    const payload = {
+        email_expediteur: email,
+        service_taille: service,
+        distance_km: distance,
+        etages: document.getElementById('etages').value,
+        prix_public: prixActuel
+    };
+
+    let bouton = document.getElementById('btn-valider');
+    bouton.innerText = "Envoi en cours...";
+    bouton.disabled = true;
+
+    // REMPLACER L'URL CI-DESSOUS PAR CELLE DE VOTRE WEBHOOK MAKE
+    fetch("https://hook.eu1.make.com/VOTRE_WEBHOOK_ICI", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload)
+    }).then(response => {
+        document.getElementById('message-succes').style.display = "block";
+        bouton.style.display = "none";
+    }).catch(error => {
+        alert("Erreur de connexion. Veuillez réessayer.");
+        bouton.innerText = "Demander la livraison";
+        bouton.disabled = false;
+    });
+}
+</script>
+
+</body>
+</html>
