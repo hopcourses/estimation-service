@@ -9,35 +9,79 @@
     <link rel="stylesheet" href="https://unpkg.com/leaflet-routing-machine@latest/dist/leaflet-routing-machine.css" />
     
     <style>
-        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: #f4f7f6; padding: 20px; color: #333; }
-        .container { max-width: 550px; margin: 0 auto; background: white; padding: 30px; border-radius: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); }
-        h2 { text-align: center; color: #ff6b00; margin-top: 0; }
-        label { font-weight: bold; display: block; margin-top: 15px; margin-bottom: 5px; }
-        input, select { width: 100%; padding: 10px; border: 1px solid #ccc; border-radius: 6px; box-sizing: border-box; font-size: 16px; }
+        :root {
+            --hop-blue: #003366;
+            --hop-orange: #ff9100;
+        }
+
+        /* Motif décoratif en fond : tracés en pointillés rappelant un itinéraire */
+        body { 
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; 
+            background-color: #f8fafc;
+            background-image: url("data:image/svg+xml,%3Csvg width='120' height='120' viewBox='0 0 120 120' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M10 110 q 50 -100 100 0' fill='none' stroke='%23003366' stroke-width='2' stroke-dasharray='6,6' opacity='0.05'/%3E%3Ccircle cx='110' cy='110' r='4' fill='%23ff9100' opacity='0.1'/%3E%3C/svg%3E");
+            padding: 20px; 
+            color: var(--hop-blue); 
+        }
+
+        .container { 
+            max-width: 550px; 
+            margin: 0 auto; 
+            background: white; 
+            padding: 30px; 
+            border-radius: 16px; 
+            box-shadow: 0 10px 25px rgba(0, 51, 102, 0.1); 
+            position: relative;
+        }
+
+        h2 { text-align: center; color: var(--hop-blue); margin-top: 0; font-size: 28px; }
+        h2 span { color: var(--hop-orange); }
         
-        .row { display: flex; gap: 10px; }
+        label { font-weight: bold; display: block; margin-top: 15px; margin-bottom: 5px; color: var(--hop-blue); }
+        input, select { 
+            width: 100%; padding: 12px; border: 2px solid #e2e8f0; border-radius: 8px; 
+            box-sizing: border-box; font-size: 16px; color: var(--hop-blue); transition: 0.3s;
+        }
+        input:focus, select:focus { border-color: var(--hop-orange); outline: none; }
+        
+        /* Conteneur d'autocomplétion */
+        .autocomplete-container { position: relative; }
+        .autocomplete-items {
+            position: absolute; border: 1px solid #e2e8f0; border-bottom: none; border-top: none; 
+            z-index: 99; top: 100%; left: 0; right: 0; border-radius: 0 0 8px 8px; 
+            background-color: white; max-height: 200px; overflow-y: auto; box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        }
+        .autocomplete-items div {
+            padding: 10px; cursor: pointer; border-bottom: 1px solid #e2e8f0; font-size: 14px;
+        }
+        .autocomplete-items div:hover { background-color: var(--hop-orange); color: white; }
+        
+        .row { display: flex; gap: 15px; }
         .row > div { flex: 1; }
         
-        .btn-calcul { width: 100%; padding: 10px; background: #333; color: white; border: none; border-radius: 6px; font-size: 16px; cursor: pointer; margin-top: 10px; }
-        .btn-calcul:hover { background: #555; }
-        
-        #map { height: 250px; width: 100%; border-radius: 8px; margin-top: 15px; border: 1px solid #ccc; z-index: 1; }
-        /* Masquer le bloc d'instructions de direction natif de Leaflet */
+        #map { height: 250px; width: 100%; border-radius: 8px; margin-top: 20px; border: 2px solid var(--hop-blue); z-index: 1; }
         .leaflet-routing-container { display: none !important; }
         
-        .price-box { background: #fff3e6; border: 2px dashed #ff6b00; padding: 15px; text-align: center; font-size: 24px; font-weight: bold; color: #ff6b00; border-radius: 8px; margin-top: 25px; }
-        .mention { font-size: 12px; color: #666; text-align: center; margin-top: 5px; }
+        .price-box { 
+            background: rgba(255, 145, 0, 0.1); border: 2px dashed var(--hop-orange); 
+            padding: 20px; text-align: center; font-size: 28px; font-weight: bold; 
+            color: var(--hop-orange); border-radius: 12px; margin-top: 25px; 
+        }
+        .mention { font-size: 12px; color: #64748b; text-align: center; margin-top: 8px; }
         
-        #btn-valider { width: 100%; padding: 15px; background: #ff6b00; color: white; border: none; border-radius: 6px; font-size: 18px; font-weight: bold; cursor: pointer; margin-top: 20px; transition: 0.3s; }
-        #btn-valider:hover { background: #e65c00; }
-        #btn-valider:disabled { background: #ccc; cursor: not-allowed; }
-        #message-succes { display: none; text-align: center; color: green; font-weight: bold; margin-top: 15px; }
+        #btn-valider { 
+            width: 100%; padding: 16px; background: var(--hop-orange); color: white; 
+            border: none; border-radius: 8px; font-size: 18px; font-weight: bold; 
+            cursor: pointer; margin-top: 20px; transition: 0.3s; box-shadow: 0 4px 10px rgba(255, 145, 0, 0.3);
+        }
+        #btn-valider:hover { background: #e07f00; transform: translateY(-2px); }
+        #btn-valider:disabled { background: #cbd5e1; cursor: not-allowed; box-shadow: none; transform: none; }
+        #message-succes { display: none; text-align: center; color: #10b981; font-weight: bold; margin-top: 15px; }
     </style>
 </head>
 <body>
 
 <div class="container">
-    <h2>Devis Éclair</h2>
+    <h2>Allez <span>HOP!</span></h2>
     
     <label for="email">E-mail expéditeur</label>
     <input type="email" id="email" placeholder="votre@email.com" required>
@@ -64,16 +108,22 @@
     </select>
 
     <label>Trajet de livraison</label>
-    <input type="text" id="adresse-depart" placeholder="Adresse de départ (ex: Bailleul)">
-    <input type="text" id="adresse-arrivee" placeholder="Adresse de livraison (ex: Hazebrouck)" style="margin-top: 5px;">
-    <button type="button" class="btn-calcul" onclick="rechercherItineraire()">Calculer l'itinéraire</button>
+    <div class="autocomplete-container">
+        <input type="text" id="adresse-depart" placeholder="Adresse de collecte">
+        <div id="autocomplete-list-depart" class="autocomplete-items"></div>
+    </div>
+    
+    <div class="autocomplete-container" style="margin-top: 10px;">
+        <input type="text" id="adresse-arrivee" placeholder="Adresse de livraison">
+        <div id="autocomplete-list-arrivee" class="autocomplete-items"></div>
+    </div>
 
     <div id="map"></div>
 
     <div class="row">
         <div>
             <label for="distance">Distance (km)</label>
-            <input type="number" id="distance" readonly style="background-color: #eee;">
+            <input type="number" id="distance" readonly style="background-color: #f1f5f9; border-color: #f1f5f9; color: #64748b;">
         </div>
         <div>
             <label for="etages">Nombre d'étages</label>
@@ -84,7 +134,7 @@
     <div class="price-box">
         <span id="affichage-prix">0,00</span> €
     </div>
-    <div class="mention">Une remise partenaire de 10 % s'appliquera automatiquement à la facturation si votre e-mail est éligible.</div>
+    <div class="mention">Une remise partenaire de 10 % s'appliquera automatiquement à la facturation si votre compte y est éligible.</div>
 
     <button id="btn-valider" onclick="envoyerCommande()" disabled>Demander la livraison</button>
     <div id="message-succes">Mission transmise à nos cotransporteurs !</div>
@@ -95,53 +145,81 @@
 
 <script>
 let prixActuel = 0;
+let coordsDepart = null;
+let coordsArrivee = null;
 
-const map = L.map('map').setView([50.7339, 2.7338], 11);
+// Initialisation de la carte (centrée sur Bailleul)
+const map = L.map('map').setView([50.7339, 2.7338], 10);
 L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(map);
 
 const routingControl = L.Routing.control({
     waypoints: [],
-    lineOptions: { styles: [{color: '#ff6b00', opacity: 0.8, weight: 5}] },
+    lineOptions: { styles: [{color: '#ff9100', opacity: 0.9, weight: 6}] },
     show: false,
     addWaypoints: false,
     routeWhileDragging: false,
     fitSelectedRoutes: true
 }).addTo(map);
 
-// Écouteur de distance Leaflet
+// Récupération de la distance calculée par Leaflet
 routingControl.on('routesfound', function(e) {
     let distanceKm = (e.routes[0].summary.totalDistance / 1000).toFixed(1);
     document.getElementById('distance').value = distanceKm;
     calculerPrix();
 });
 
-// Géocodage des adresses (texte vers GPS)
-async function rechercherItineraire() {
-    let dep = document.getElementById('adresse-depart').value;
-    let arr = document.getElementById('adresse-arrivee').value;
-    
-    if (!dep || !arr) { alert("Veuillez saisir les deux adresses."); return; }
-    
-    try {
-        let res1 = await fetch('https://nominatim.openstreetmap.org/search?format=json&q=' + encodeURIComponent(dep));
-        let data1 = await res1.json();
-        let res2 = await fetch('https://nominatim.openstreetmap.org/search?format=json&q=' + encodeURIComponent(arr));
-        let data2 = await res2.json();
-        
-        if (data1.length === 0 || data2.length === 0) {
-            alert("Adresse introuvable. Précisez la ville ou le code postal."); return;
-        }
-        
-        routingControl.setWaypoints([
-            L.latLng(data1[0].lat, data1[0].lon),
-            L.latLng(data2[0].lat, data2[0].lon)
-        ]);
-    } catch (error) {
-        alert("Erreur de géolocalisation.");
+// Autocomplétion via l'API nationale des adresses (Data Gouv)
+let timeoutId;
+function configurerAutocomplete(inputId, listId, isDepart) {
+    const input = document.getElementById(inputId);
+    const list = document.getElementById(listId);
+
+    input.addEventListener('input', function() {
+        clearTimeout(timeoutId);
+        list.innerHTML = '';
+        let query = this.value;
+        if (query.length < 3) return;
+
+        timeoutId = setTimeout(async () => {
+            try {
+                let response = await fetch(`https://api-adresse.data.gouv.fr/search/?q=${encodeURIComponent(query)}&limit=5`);
+                let data = await response.json();
+                
+                data.features.forEach(feature => {
+                    let div = document.createElement("div");
+                    div.innerHTML = feature.properties.label;
+                    div.addEventListener("click", function() {
+                        input.value = feature.properties.label;
+                        list.innerHTML = '';
+                        
+                        // L'API renvoie [longitude, latitude]
+                        let coords = L.latLng(feature.geometry.coordinates[1], feature.geometry.coordinates[0]);
+                        if (isDepart) coordsDepart = coords;
+                        else coordsArrivee = coords;
+                        
+                        tracerItineraire();
+                    });
+                    list.appendChild(div);
+                });
+            } catch (err) { console.error("Erreur API Adresse"); }
+        }, 300);
+    });
+
+    document.addEventListener("click", function (e) {
+        if (e.target !== input) list.innerHTML = '';
+    });
+}
+
+configurerAutocomplete("adresse-depart", "autocomplete-list-depart", true);
+configurerAutocomplete("adresse-arrivee", "autocomplete-list-arrivee", false);
+
+function tracerItineraire() {
+    if (coordsDepart && coordsArrivee) {
+        routingControl.setWaypoints([coordsDepart, coordsArrivee]);
     }
 }
 
-// Moteur de tarification explicite
+// Moteur de tarification explicite (Identique à la validation précédente)
 function calculerPrix() {
     let serviceStr = document.getElementById('service').value;
     let distanceVal = parseFloat(document.getElementById('distance').value) || 0;
@@ -167,7 +245,6 @@ function calculerPrix() {
     let multiplicateur = 1.03;
     let sousTotal = 0;
 
-    // 1. DRIVE ALIMENTAIRE
     if (branche === "Drive alimentaire") {
         if (distanceGrille < 2) tarifPalier = 5;
         else if (distanceGrille < 5) tarifPalier = 5.50;
@@ -176,15 +253,10 @@ function calculerPrix() {
         else if (distanceGrille < 20) tarifPalier = 12;
         else tarifPalier = 15;
 
-        let supplementTaille = 0;
-        if (taille === "XL" || taille === "XXL") { supplementTaille = 1.00; }
-        
-        if (etages > 2) { supplementEtage = 0.50; }
-        
+        let supplementTaille = (taille === "XL" || taille === "XXL") ? 1.00 : 0;
+        if (etages > 2) supplementEtage = 0.50;
         sousTotal = tarifPalier + kmSupp + supplementTaille + supplementEtage + 2.25;
     }
-    
-    // 2. COLIS
     else if (branche === "Colis") {
         let isSup = (taille === "XL" || taille === "XXL");
         if (distanceGrille < 5) tarifPalier = isSup ? 6 : 5;
@@ -192,65 +264,29 @@ function calculerPrix() {
         else if (distanceGrille < 15) tarifPalier = isSup ? 10 : 8;
         else if (distanceGrille < 20) tarifPalier = isSup ? 12 : 9;
         else tarifPalier = isSup ? 15 : 12;
-
-        sousTotal = tarifPalier + kmSupp + 2.25; // Pas de supplément étage
+        sousTotal = tarifPalier + kmSupp + 2.25; 
     }
-    
-    // 3. ÉQUIPEMENT MOYEN
     else if (branche === "Équipement Moyen") {
-        if (distanceGrille < 5) {
-            if (taille === "M") tarifPalier = 7;
-            else if (taille === "L") tarifPalier = 10;
-            else if (taille === "XL") tarifPalier = 13;
-        } else if (distanceGrille < 10) {
-            if (taille === "M") tarifPalier = 9;
-            else if (taille === "L") tarifPalier = 13;
-            else if (taille === "XL") tarifPalier = 16;
-        } else if (distanceGrille < 15) {
-            if (taille === "M") tarifPalier = 11;
-            else if (taille === "L") tarifPalier = 15;
-            else if (taille === "XL") tarifPalier = 19;
-        } else if (distanceGrille < 20) {
-            if (taille === "M") tarifPalier = 13;
-            else if (taille === "L") tarifPalier = 18;
-            else if (taille === "XL") tarifPalier = 25;
-        } else {
-            if (taille === "M") tarifPalier = 15;
-            else if (taille === "L") tarifPalier = 20;
-            else if (taille === "XL") tarifPalier = 30;
-        }
+        if (distanceGrille < 5) tarifPalier = (taille === "M") ? 7 : (taille === "L") ? 10 : 13;
+        else if (distanceGrille < 10) tarifPalier = (taille === "M") ? 9 : (taille === "L") ? 13 : 16;
+        else if (distanceGrille < 15) tarifPalier = (taille === "M") ? 11 : (taille === "L") ? 15 : 19;
+        else if (distanceGrille < 20) tarifPalier = (taille === "M") ? 13 : (taille === "L") ? 18 : 25;
+        else tarifPalier = (taille === "M") ? 15 : (taille === "L") ? 20 : 30;
 
-        if (etages > 2) { supplementEtage = 0.50; }
+        if (etages > 2) supplementEtage = 0.50;
         sousTotal = tarifPalier + kmSupp + supplementEtage + 3.25;
-        if (sousTotal >= 30) { multiplicateur = 1.06; }
+        if (sousTotal >= 30) multiplicateur = 1.06;
     }
-    
-    // 4. ÉQUIPEMENT VOLUMINEUX
     else if (branche === "Équipement Volumineux") {
-        if (distanceGrille < 5) {
-            if (taille === "L" || taille === "XL") tarifPalier = 15;
-            else if (taille === "XXL") tarifPalier = 20;
-        } else if (distanceGrille < 10) {
-            if (taille === "L") tarifPalier = 18;
-            else if (taille === "XL") tarifPalier = 20;
-            else if (taille === "XXL") tarifPalier = 25;
-        } else if (distanceGrille < 15) {
-            if (taille === "L") tarifPalier = 22;
-            else if (taille === "XL") tarifPalier = 25;
-            else if (taille === "XXL") tarifPalier = 30;
-        } else if (distanceGrille < 20) {
-            if (taille === "L") tarifPalier = 25;
-            else if (taille === "XL") tarifPalier = 30;
-            else if (taille === "XXL") tarifPalier = 35;
-        } else {
-            if (taille === "L") tarifPalier = 29;
-            else if (taille === "XL") tarifPalier = 35;
-            else if (taille === "XXL") tarifPalier = 45;
-        }
+        if (distanceGrille < 5) tarifPalier = (taille === "L" || taille === "XL") ? 15 : 20;
+        else if (distanceGrille < 10) tarifPalier = (taille === "L") ? 18 : (taille === "XL") ? 20 : 25;
+        else if (distanceGrille < 15) tarifPalier = (taille === "L") ? 22 : (taille === "XL") ? 25 : 30;
+        else if (distanceGrille < 20) tarifPalier = (taille === "L") ? 25 : (taille === "XL") ? 30 : 35;
+        else tarifPalier = (taille === "L") ? 29 : (taille === "XL") ? 35 : 45;
 
-        if (etages >= 2) { supplementEtage = 1.00; }
+        if (etages >= 2) supplementEtage = 1.00;
         sousTotal = tarifPalier + kmSupp + supplementEtage + 3.25;
-        if (sousTotal >= 30) { multiplicateur = 1.06; }
+        if (sousTotal >= 30) multiplicateur = 1.06;
     }
 
     prixActuel = Math.round(sousTotal * multiplicateur * 1.20 * 100) / 100;
@@ -265,23 +301,19 @@ function envoyerCommande() {
 
     if (!email || !service || !distance) return;
 
-    let adrDepart = document.getElementById('adresse-depart').value;
-    let adrArrivee = document.getElementById('adresse-arrivee').value;
-
     const payload = {
         email_expediteur: email,
         service_taille: service,
         distance_km: distance,
         etages: document.getElementById('etages').value,
-        adresse_depart: adrDepart,
-        adresse_arrivee: adrArrivee,
+        adresse_depart: document.getElementById('adresse-depart').value,
+        adresse_arrivee: document.getElementById('adresse-arrivee').value,
         prix_public: prixActuel
     };
 
     btnValider.innerText = "Envoi en cours...";
     btnValider.disabled = true;
 
-    // REMPLACER PAR VOTRE WEBHOOK MAKE
     fetch("https://hook.eu1.make.com/VOTRE_WEBHOOK_ICI", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
