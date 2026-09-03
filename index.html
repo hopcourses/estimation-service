@@ -182,7 +182,7 @@
     <div class="mention">Une remise partenaire de 10 % s'appliquera automatiquement à la facturation si votre compte y est éligible.</div>
 
     <button id="btn-valider" onclick="envoyerCommande()" disabled>Demander la livraison</button>
-    <div id="message-succes">Mission transmise à nos cotransporteurs !</div>
+    <div id="message-succes">Vous allez être redirigé(e) vers la page de paiement, un instant...</div>
 </div>
 
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
@@ -318,10 +318,10 @@ function calculerPrix() {
     let sousTotal = 0;
 
     if (categorieSelectionnee === "Drive alimentaire" || categorieSelectionnee === "Repas") {
-        if (distanceGrille < 2) tarifPalier = 5;
-        else if (distanceGrille < 5) tarifPalier = 5.50;
-        else if (distanceGrille < 10) tarifPalier = 6;
-        else if (distanceGrille < 15) tarifPalier = 8;
+        if (distanceGrille < 2) tarifPalier = 4.50;
+        else if (distanceGrille < 5) tarifPalier = 5;
+        else if (distanceGrille < 10) tarifPalier = 7;
+        else if (distanceGrille < 15) tarifPalier = 10;
         else if (distanceGrille < 20) tarifPalier = 12;
         else tarifPalier = 15;
 
