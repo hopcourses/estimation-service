@@ -14,7 +14,6 @@
             --hop-orange: #ff9100;
         }
 
-        /* Motif décoratif en fond : tracés en pointillés rappelant un itinéraire */
         body { 
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; 
             background-color: #f8fafc;
@@ -43,6 +42,46 @@
         }
         input:focus, select:focus { border-color: var(--hop-orange); outline: none; }
         
+        /* Grille des catégories */
+        .category-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 12px;
+            margin-top: 10px;
+        }
+        .category-card {
+            border: 2px solid #e2e8f0;
+            border-radius: 12px;
+            padding: 15px 10px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            background: white;
+            font-weight: 600;
+            font-size: 14px;
+        }
+        .category-card:hover {
+            border-color: var(--hop-orange);
+            background: rgba(255, 145, 0, 0.05);
+        }
+        .category-card.active {
+            border-color: var(--hop-orange);
+            background: rgba(255, 145, 0, 0.1);
+            color: var(--hop-orange);
+            box-shadow: 0 4px 10px rgba(255, 145, 0, 0.15);
+        }
+        .category-icon {
+            font-size: 28px;
+            display: block;
+            margin-bottom: 8px;
+        }
+
+        #size-container {
+            display: none;
+            animation: fadeIn 0.4s ease-in-out;
+        }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(-10px); } to { opacity: 1; transform: translateY(0); } }
+
         /* Conteneur d'autocomplétion */
         .autocomplete-container { position: relative; }
         .autocomplete-items {
@@ -86,26 +125,28 @@
     <label for="email">E-mail expéditeur</label>
     <input type="email" id="email" placeholder="votre@email.com" required>
 
-    <label for="service">Service & Taille</label>
-    <select id="service" onchange="calculerPrix()">
-        <option value="">Sélectionnez un service...</option>
-        <option value="Drive alimentaire - Taille S">Drive alimentaire - Taille S</option>
-        <option value="Drive alimentaire - Taille M">Drive alimentaire - Taille M</option>
-        <option value="Drive alimentaire - Taille L">Drive alimentaire - Taille L</option>
-        <option value="Drive alimentaire - Taille XL">Drive alimentaire - Taille XL</option>
-        <option value="Drive alimentaire - Taille XXL">Drive alimentaire - Taille XXL</option>
-        <option value="Colis - Taille S">Colis - Taille S</option>
-        <option value="Colis - Taille M">Colis - Taille M</option>
-        <option value="Colis - Taille L">Colis - Taille L</option>
-        <option value="Colis - Taille XL">Colis - Taille XL</option>
-        <option value="Colis - Taille XXL">Colis - Taille XXL</option>
-        <option value="Équipement Moyen - Taille M">Équipement Moyen - Taille M</option>
-        <option value="Équipement Moyen - Taille L">Équipement Moyen - Taille L</option>
-        <option value="Équipement Moyen - Taille XL">Équipement Moyen - Taille XL</option>
-        <option value="Équipement Volumineux - Taille L">Équipement Volumineux - Taille L</option>
-        <option value="Équipement Volumineux - Taille XL">Équipement Volumineux - Taille XL</option>
-        <option value="Équipement Volumineux - Taille XXL">Équipement Volumineux - Taille XXL</option>
-    </select>
+    <label>Que souhaitez-vous vous faire livrer ?</label>
+    <div class="category-grid">
+        <div class="category-card" onclick="selectCategory('Drive alimentaire', this)">
+            <span class="category-icon">🍔</span> Drive
+        </div>
+        <div class="category-card" onclick="selectCategory('Colis', this)">
+            <span class="category-icon">📦</span> Colis
+        </div>
+        <div class="category-card" onclick="selectCategory('Équipement Moyen', this)">
+            <span class="category-icon">🪑</span> Petit Mobilier
+        </div>
+        <div class="category-card" onclick="selectCategory('Équipement Volumineux', this)">
+            <span class="category-icon">🛋️</span> Gros Volume
+        </div>
+    </div>
+
+    <div id="size-container">
+        <label for="taille">Choisissez la taille</label>
+        <select id="taille" onchange="calculerPrix()">
+            <option value="">Sélectionnez une taille...</option>
+        </select>
+    </div>
 
     <label>Trajet de livraison</label>
     <div class="autocomplete-container">
@@ -147,6 +188,39 @@
 let prixActuel = 0;
 let coordsDepart = null;
 let coordsArrivee = null;
+let categorieSelectionnee = "";
+
+// Base de données des tailles par catégorie
+const taillesParCategorie = {
+    "Drive alimentaire": ["S", "M", "L", "XL", "XXL"],
+    "Colis": ["S", "M", "L", "XL", "XXL"],
+    "Équipement Moyen": ["M", "L", "XL"],
+    "Équipement Volumineux": ["L", "XL", "XXL"]
+};
+
+// Fonction de sélection des tuiles visuelles
+function selectCategory(categorie, element) {
+    categorieSelectionnee = categorie;
+    
+    // Mise à jour visuelle des boutons
+    document.querySelectorAll('.category-card').forEach(el => el.classList.remove('active'));
+    element.classList.add('active');
+
+    // Génération dynamique du menu déroulant
+    const selectTaille = document.getElementById('taille');
+    selectTaille.innerHTML = '<option value="">Sélectionnez une taille...</option>';
+    
+    taillesParCategorie[categorie].forEach(taille => {
+        let option = document.createElement('option');
+        option.value = taille;
+        option.innerText = "Taille " + taille;
+        selectTaille.appendChild(option);
+    });
+
+    // Affichage du menu et recalcul
+    document.getElementById('size-container').style.display = 'block';
+    calculerPrix();
+}
 
 // Initialisation de la carte (centrée sur Bailleul)
 const map = L.map('map').setView([50.7339, 2.7338], 10);
@@ -192,7 +266,6 @@ function configurerAutocomplete(inputId, listId, isDepart) {
                         input.value = feature.properties.label;
                         list.innerHTML = '';
                         
-                        // L'API renvoie [longitude, latitude]
                         let coords = L.latLng(feature.geometry.coordinates[1], feature.geometry.coordinates[0]);
                         if (isDepart) coordsDepart = coords;
                         else coordsArrivee = coords;
@@ -219,24 +292,20 @@ function tracerItineraire() {
     }
 }
 
-// Moteur de tarification explicite (Identique à la validation précédente)
+// Moteur de tarification explicite
 function calculerPrix() {
-    let serviceStr = document.getElementById('service').value;
+    let taille = document.getElementById('taille').value;
     let distanceVal = parseFloat(document.getElementById('distance').value) || 0;
     let etages = parseInt(document.getElementById('etages').value) || 0;
     let btnValider = document.getElementById('btn-valider');
 
-    if (!serviceStr || distanceVal <= 0) {
+    // Vérification des champs requis
+    if (!categorieSelectionnee || !taille || distanceVal <= 0) {
         document.getElementById('affichage-prix').innerText = "0,00";
         btnValider.disabled = true;
         return;
     }
     btnValider.disabled = false;
-
-    let elements = serviceStr.split(" - Taille ");
-    if (elements.length !== 2) return;
-    let branche = elements[0].trim();
-    let taille = elements[1].trim();
 
     let tarifPalier = 0;
     let distanceGrille = Math.min(distanceVal, 30);
@@ -245,7 +314,7 @@ function calculerPrix() {
     let multiplicateur = 1.03;
     let sousTotal = 0;
 
-    if (branche === "Drive alimentaire") {
+    if (categorieSelectionnee === "Drive alimentaire") {
         if (distanceGrille < 2) tarifPalier = 5;
         else if (distanceGrille < 5) tarifPalier = 5.50;
         else if (distanceGrille < 10) tarifPalier = 6;
@@ -257,7 +326,7 @@ function calculerPrix() {
         if (etages > 2) supplementEtage = 0.50;
         sousTotal = tarifPalier + kmSupp + supplementTaille + supplementEtage + 2.25;
     }
-    else if (branche === "Colis") {
+    else if (categorieSelectionnee === "Colis") {
         let isSup = (taille === "XL" || taille === "XXL");
         if (distanceGrille < 5) tarifPalier = isSup ? 6 : 5;
         else if (distanceGrille < 10) tarifPalier = isSup ? 8 : 6;
@@ -266,7 +335,7 @@ function calculerPrix() {
         else tarifPalier = isSup ? 15 : 12;
         sousTotal = tarifPalier + kmSupp + 2.25; 
     }
-    else if (branche === "Équipement Moyen") {
+    else if (categorieSelectionnee === "Équipement Moyen") {
         if (distanceGrille < 5) tarifPalier = (taille === "M") ? 7 : (taille === "L") ? 10 : 13;
         else if (distanceGrille < 10) tarifPalier = (taille === "M") ? 9 : (taille === "L") ? 13 : 16;
         else if (distanceGrille < 15) tarifPalier = (taille === "M") ? 11 : (taille === "L") ? 15 : 19;
@@ -277,7 +346,7 @@ function calculerPrix() {
         sousTotal = tarifPalier + kmSupp + supplementEtage + 3.25;
         if (sousTotal >= 30) multiplicateur = 1.06;
     }
-    else if (branche === "Équipement Volumineux") {
+    else if (categorieSelectionnee === "Équipement Volumineux") {
         if (distanceGrille < 5) tarifPalier = (taille === "L" || taille === "XL") ? 15 : 20;
         else if (distanceGrille < 10) tarifPalier = (taille === "L") ? 18 : (taille === "XL") ? 20 : 25;
         else if (distanceGrille < 15) tarifPalier = (taille === "L") ? 22 : (taille === "XL") ? 25 : 30;
@@ -295,15 +364,15 @@ function calculerPrix() {
 
 function envoyerCommande() {
     let email = document.getElementById('email').value;
-    let service = document.getElementById('service').value;
+    let taille = document.getElementById('taille').value;
     let distance = document.getElementById('distance').value;
     let btnValider = document.getElementById('btn-valider');
 
-    if (!email || !service || !distance) return;
+    if (!email || !categorieSelectionnee || !taille || !distance) return;
 
     const payload = {
         email_expediteur: email,
-        service_taille: service,
+        service_taille: categorieSelectionnee + " - Taille " + taille,
         distance_km: distance,
         etages: document.getElementById('etages').value,
         adresse_depart: document.getElementById('adresse-depart').value,
