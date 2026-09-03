@@ -182,7 +182,7 @@
     <div class="mention">Une remise partenaire de 10 % s'appliquera automatiquement à la facturation si votre compte y est éligible.</div>
 
     <button id="btn-valider" onclick="envoyerCommande()" disabled>Demander la livraison</button>
-    <div id="message-succes">Vous allez être redirigé(e) vers la page de paiement, un instant...</div>
+    <div id="message-succes">Mission transmise à nos cotransporteurs !</div>
 </div>
 
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
@@ -259,13 +259,11 @@ function configurerAutocomplete(inputId, listId, isDepart) {
 
         timeoutId = setTimeout(async () => {
             try {
-                // Remplacement par l'API OpenStreetMap (Nominatim)
                 let response = await fetch(`https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(query)}&format=geojson&limit=5&countrycodes=fr`);
                 let data = await response.json();
                 
                 data.features.forEach(feature => {
                     let div = document.createElement("div");
-                    // Utilisation de display_name au lieu de label
                     div.innerHTML = feature.properties.display_name;
                     div.addEventListener("click", function() {
                         input.value = feature.properties.display_name;
@@ -317,19 +315,32 @@ function calculerPrix() {
     let multiplicateur = 1.03;
     let sousTotal = 0;
 
-    if (categorieSelectionnee === "Drive alimentaire" || categorieSelectionnee === "Repas") {
-        if (distanceGrille < 2) tarifPalier = 4.50;
-        else if (distanceGrille < 5) tarifPalier = 5;
-        else if (distanceGrille < 10) tarifPalier = 7;
-        else if (distanceGrille < 15) tarifPalier = 10;
+    // --- BLOC REPAS ---
+    if (categorieSelectionnee === "Repas") {
+        if (distanceGrille < 2) tarifPalier = 5;
+        else if (distanceGrille < 5) tarifPalier = 5.50;
+        else if (distanceGrille < 10) tarifPalier = 6;
+        else if (distanceGrille < 15) tarifPalier = 8;
         else if (distanceGrille < 20) tarifPalier = 12;
         else tarifPalier = 15;
 
-        let supplementTaille = (categorieSelectionnee === "Drive alimentaire" && (taille === "XL" || taille === "XXL")) ? 1.00 : 0;
-        
+        if (etages > 2) supplementEtage = 0.50;
+        sousTotal = tarifPalier + kmSupp + supplementEtage + 2.25;
+    }
+    // --- BLOC DRIVE ALIMENTAIRE ---
+    else if (categorieSelectionnee === "Drive alimentaire") {
+        if (distanceGrille < 2) tarifPalier = 5;
+        else if (distanceGrille < 5) tarifPalier = 5.50;
+        else if (distanceGrille < 10) tarifPalier = 6;
+        else if (distanceGrille < 15) tarifPalier = 8;
+        else if (distanceGrille < 20) tarifPalier = 12;
+        else tarifPalier = 15;
+
+        let supplementTaille = (taille === "XL" || taille === "XXL") ? 1.00 : 0;
         if (etages > 2) supplementEtage = 0.50;
         sousTotal = tarifPalier + kmSupp + supplementTaille + supplementEtage + 2.25;
     }
+    // --- AUTRES BLOCS ---
     else if (categorieSelectionnee === "Colis") {
         let isSup = (taille === "XL" || taille === "XXL");
         if (distanceGrille < 5) tarifPalier = isSup ? 6 : 5;
