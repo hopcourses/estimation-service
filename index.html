@@ -127,8 +127,12 @@
 
     <label>Que souhaitez-vous vous faire livrer ?</label>
     <div class="category-grid">
+        <!-- Nouvelle catégorie Repas (Pleine largeur sur la première ligne) -->
+        <div class="category-card" style="grid-column: span 2;" onclick="selectCategory('Repas', this)">
+            <span class="category-icon">🍕</span> Repas express
+        </div>
         <div class="category-card" onclick="selectCategory('Drive alimentaire', this)">
-            <span class="category-icon">🛒🛍️</span> Drive ou Repas
+            <span class="category-icon">🛒</span> Drive
         </div>
         <div class="category-card" onclick="selectCategory('Colis', this)">
             <span class="category-icon">📦</span> Colis
@@ -150,7 +154,7 @@
 
     <label>Trajet de livraison</label>
     <div class="autocomplete-container">
-        <input type="text" id="adresse-depart" placeholder="Adresse de collecte">
+        <input type="text" id="adresse-depart" placeholder="Adresse de collecte (Restaurant, etc.)">
         <div id="autocomplete-list-depart" class="autocomplete-items"></div>
     </div>
     
@@ -190,8 +194,9 @@ let coordsDepart = null;
 let coordsArrivee = null;
 let categorieSelectionnee = "";
 
-// Base de données des tailles par catégorie
+// Base de données des tailles par catégorie (ajout de la taille unique pour Repas)
 const taillesParCategorie = {
+    "Repas": ["Unique"],
     "Drive alimentaire": ["S", "M", "L", "XL", "XXL"],
     "Colis": ["S", "M", "L", "XL", "XXL"],
     "Équipement Moyen": ["M", "L", "XL"],
@@ -217,8 +222,14 @@ function selectCategory(categorie, element) {
         selectTaille.appendChild(option);
     });
 
-    // Affichage du menu et recalcul
-    document.getElementById('size-container').style.display = 'block';
+    // UX : Si la catégorie n'a qu'une seule taille (Repas), on la sélectionne par défaut et on masque le menu
+    if (taillesParCategorie[categorie].length === 1) {
+        selectTaille.value = taillesParCategorie[categorie][0];
+        document.getElementById('size-container').style.display = 'none';
+    } else {
+        document.getElementById('size-container').style.display = 'block';
+    }
+    
     calculerPrix();
 }
 
@@ -314,7 +325,8 @@ function calculerPrix() {
     let multiplicateur = 1.03;
     let sousTotal = 0;
 
-    if (categorieSelectionnee === "Drive alimentaire") {
+    // Fusion de "Drive alimentaire" et "Repas" sur la même base kilométrique
+    if (categorieSelectionnee === "Drive alimentaire" || categorieSelectionnee === "Repas") {
         if (distanceGrille < 2) tarifPalier = 5;
         else if (distanceGrille < 5) tarifPalier = 5.50;
         else if (distanceGrille < 10) tarifPalier = 6;
@@ -322,7 +334,9 @@ function calculerPrix() {
         else if (distanceGrille < 20) tarifPalier = 12;
         else tarifPalier = 15;
 
-        let supplementTaille = (taille === "XL" || taille === "XXL") ? 1.00 : 0;
+        // Le supplément de taille XL/XXL ne s'applique qu'au Drive, pas aux Repas (qui n'ont qu'une taille)
+        let supplementTaille = (categorieSelectionnee === "Drive alimentaire" && (taille === "XL" || taille === "XXL")) ? 1.00 : 0;
+        
         if (etages > 2) supplementEtage = 0.50;
         sousTotal = tarifPalier + kmSupp + supplementTaille + supplementEtage + 2.25;
     }
@@ -370,9 +384,12 @@ function envoyerCommande() {
 
     if (!email || !categorieSelectionnee || !taille || !distance) return;
 
+    // Envoi d'un nom de service propre au Webhook
+    let nomService = categorieSelectionnee === "Repas" ? "Repas" : categorieSelectionnee + " - Taille " + taille;
+
     const payload = {
         email_expediteur: email,
-        service_taille: categorieSelectionnee + " - Taille " + taille,
+        service_taille: nomService,
         distance_km: distance,
         etages: document.getElementById('etages').value,
         adresse_depart: document.getElementById('adresse-depart').value,
